@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Initialize the flat `trump-quant` monorepo skeleton (`ingestion/`, `etl/`, `ai/`), implement Part 1 incremental JSON-to-Bronze-Parquet ingestion for Truth Social and Binance, and package it with `uv` and Docker for local and Azure portability.
+**Goal:** Initialize the flat `PDF` (`President Driven Finances`) monorepo skeleton (`ingestion/`, `etl/`, `ai/`), implement Part 1 incremental JSON-to-Bronze-Parquet ingestion for Truth Social and Binance, and package it with `uv` and Docker for local and Azure portability.
 
 **Architecture:** One flat Python repository managed via a single root `pyproject.toml` with optional dependency extras (`ingestion`, `etl`, `ai`). Part 1 implements `ingestion/` with `pydantic-settings` config, an `fsspec` + `pyarrow` storage/state layer, a connector protocol in `sources/base.py` hosting `truth_social` and `binance`, and a CLI (`ingest run` / `ingest loop`) wrapped in a lightweight `ingestion/Dockerfile` + `docker-compose.yml`.
 
@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Flat repo layout at `Projekty/trump-quant/`: `ingestion/`, `etl/`, `ai/`, `tests/`, `docs/` directly at root (no `packages/`, no `src/`, no Git submodules, no Cruft).
+- Flat repo layout at repo root (`PDF/`): `ingestion/`, `etl/`, `ai/`, `tests/`, `docs/` directly at root (no `packages/`, no `src/`, no Git submodules, no Cruft).
 - Single root `pyproject.toml` using `[project.optional-dependencies]` (`ingestion`, `etl`, `ai`) and `[dependency-groups]` (`dev`), so `ingestion/Dockerfile` installs only `--extra ingestion` (`--no-dev`).
 - Bronze Parquet preserves source payloads without cleaning or lossy numeric rounding; Truth Social `replies_count`, `reblogs_count`, `favourites_count` MUST be nullable integers (`pa.int64()`), `media` MUST be `pa.list_(pa.string())`.
 - Binance default host: `https://data-api.binance.vision`; default symbols: `BTCUSDT,ETHUSDT,SOLUSDT,XRPUSDT,TRUMPUSDT`; default interval: `1m` (configurable to `5m` etc.); default initial lookback: `24` hours; never persist still-open candles (`close_time_ms >= now_ms`).
@@ -63,9 +63,9 @@
 **Interfaces:**
 - Produces: top-level Python packages `ingestion`, `etl`, `ai` importable via `uv run` and `pytest`; committed English spec at `docs/superpowers/specs/2026-11-18-ingestion-and-repo-design.md`.
 
-- [ ] **Step 1: Initialize Git repository in `Projekty/trump-quant` and commit the approved design docs**
+- [ ] **Step 1: Initialize Git repository in `PDF` and commit the approved design docs**
 
-Run in `Projekty/trump-quant`:
+Run in repo root (`PDF/`):
 ```bash
 git init
 ```
@@ -119,7 +119,7 @@ Expected: PASS (`1 passed`) and `uv.lock` created.
 
 ```bash
 git add .gitignore .env.example pyproject.toml uv.lock docs/ ingestion/__init__.py etl/ ai/ tests/
-git commit -m "chore: initialize flat trump-quant repo skeleton and ingestion env"
+git commit -m "chore: initialize flat PDF repo skeleton and ingestion env"
 ```
 
 ---
