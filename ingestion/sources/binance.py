@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import logging
+import math
 import time
 from collections import defaultdict
 from collections.abc import Callable
 from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
 from typing import Any
 
 import httpx
@@ -43,6 +45,25 @@ BINANCE_KLINE_ARROW_SCHEMA = pa.schema(
 def align_down(ts_ms: int, interval_ms: int) -> int:
     """Align a millisecond timestamp down to the nearest interval boundary."""
     return (ts_ms // interval_ms) * interval_ms
+
+
+def _parse_retry_after(value: str | None, now: datetime | None = None) -> float:
+    """Parse an HTTP Retry-After header (seconds or HTTP-date) into non-negative seconds."""
+    if not value or not value.strip():
+        return 0.0
+    text = value.strip()
+    try:
+        seconds = float(text)
+    except ValueError:
+        try:
+            target = parsedate_to_datetime(text)
+        except (TypeError, ValueError):
+            return 0.0
+        if target.tzinfo is None:
+            target = target.replace(tzinfo=UTC)
+        ref = now if now is not None else datetime.now(UTC)
+        return max(0.0, (target - ref).total_seconds())
+    return max(0.0, seconds) if math.isfinite(seconds) else 0.0
 
 
 def _klines_to_arrow(
@@ -123,7 +144,7 @@ class BinanceConnector:
                 body_snippet = exc.response.text[:300]
                 retryable = status == 429 or status >= 500
                 if retryable and attempt < max_attempts:
-                    retry_after = float(exc.response.headers.get("Retry-After", "0") or 0)
+                    retry_after = _parse_retry_after(exc.response.headers.get("Retry-After"))
                     delay = max(retry_after, self.backoff_seconds * (2 ** (attempt - 1)))
                     logger.warning(
                         "binance transient HTTP error, retrying: symbol=%s interval=%s "

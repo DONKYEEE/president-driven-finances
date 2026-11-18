@@ -1,7 +1,10 @@
+import os
+import signal
 import threading
 
 import pytest
 
+import ingestion.cli as cli_module
 from ingestion.cli import configure_logging, main, run_loop, run_once
 from ingestion.config import IngestionSettings
 from ingestion.sources.base import IngestionResult
@@ -85,3 +88,42 @@ def test_cli_configure_logging_writes_failures_to_log_file(tmp_path):
     assert log_path.is_file()
     contents = log_path.read_text(encoding="utf-8")
     assert "binance" in contents and "transient network error" in contents
+
+
+def test_cli_loop_sigint_sets_stop_event_without_logging_in_signal_handler(
+    tmp_path, monkeypatch, caplog
+):
+    settings = IngestionSettings(
+        _env_file=None,
+        storage_uri=str(tmp_path / "bronze"),
+        poll_interval_seconds=1,
+    )
+    ok = _FakeConnector("truth_social", ["success"])
+    stop_event = threading.Event()
+    orig_info = cli_module.logger.info
+
+    def _boom_info(*args, **kwargs):
+        raise RuntimeError("reentrant call inside buffered stream writer")
+
+    def sleep_and_signal(seconds: float) -> bool:
+        # Simulate signal arriving mid-I/O on the main thread
+        monkeypatch.setattr(cli_module.logger, "info", _boom_info)
+        try:
+            os.kill(os.getpid(), signal.SIGINT)
+        finally:
+            monkeypatch.setattr(cli_module.logger, "info", orig_info)
+        return stop_event.is_set()
+
+    with caplog.at_level("INFO"):
+        exit_code = run_loop(
+            "truth_social",
+            settings,
+            registry={"truth_social": ok},
+            stop_event=stop_event,
+            sleep_fn=sleep_and_signal,
+        )
+
+    assert exit_code == 0
+    assert stop_event.is_set()
+    assert ok.calls == 1
+    assert "Received signal" in caplog.text

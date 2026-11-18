@@ -10,6 +10,7 @@ ENV UV_COMPILE_BYTECODE=1 \
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --extra ingestion --no-install-project
 
+COPY README.md ./
 COPY ingestion ./ingestion
 COPY etl ./etl
 COPY ai ./ai

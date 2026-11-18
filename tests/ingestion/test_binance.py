@@ -152,3 +152,45 @@ def test_binance_initial_lookback_without_state_and_already_caught_up(tmp_path):
     assert res1.records_written == 1
     assert res2.status == "skipped"
     assert res2.records_written == 0
+
+
+def test_binance_retries_http_date_and_garbage_retry_after_headers(tmp_path):
+    from ingestion.sources.binance import _parse_retry_after
+
+    now_dt = datetime(2026, 11, 18, 8, 10, 0, tzinfo=UTC)
+    assert _parse_retry_after("Wed, 18 Nov 2026 08:10:05 GMT", now=now_dt) == 5.0
+    assert _parse_retry_after("Wed, 18 Nov 2026 08:09:00 GMT", now=now_dt) == 0.0
+    assert _parse_retry_after("not-a-date", now=now_dt) == 0.0
+
+    t0 = int(datetime(2026, 11, 18, 8, 8, 0, tzinfo=UTC).timestamp() * 1000)
+    t1 = t0 + 60_000
+    storage = BronzeStorage(str(tmp_path / "bronze"))
+    state = StateStore(storage)
+    state.put_json("binance_BTCUSDT_1m", {"last_closed_open_time_ms": t0})
+    settings = IngestionSettings(
+        _env_file=None,
+        storage_uri=str(tmp_path / "bronze"),
+        binance_symbols=["BTCUSDT"],
+        binance_interval="1m",
+    )
+
+    attempts = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            return httpx.Response(429, headers={"Retry-After": "Wed, 18 Nov 2026 01:00:00 GMT"})
+        if attempts == 2:
+            return httpx.Response(503, headers={"Retry-After": "bogus"})
+        return httpx.Response(200, json=[_kline(t1)])
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        res = BinanceConnector(max_retries=2, backoff_seconds=0.0).run(
+            storage, state, settings, client, now_fn=lambda: now_dt
+        )
+
+    assert attempts == 3
+    assert res.status == "success"
+    assert res.records_written == 1
+    assert state.get_json("binance_BTCUSDT_1m")["last_closed_open_time_ms"] == t1

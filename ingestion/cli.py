@@ -138,9 +138,10 @@ def run_loop(
     """Continuously run ingestion on poll_interval_seconds until interrupted."""
     event = stop_event or threading.Event()
     waiter = sleep_fn or event.wait
+    received_signals: list[int] = []
 
     def _handle_signal(signum: int, _frame: object) -> None:
-        logger.info("Received signal %d, stopping after current cycle", signum)
+        received_signals.append(signum)
         event.set()
 
     on_main_thread = threading.current_thread() is threading.main_thread()
@@ -160,6 +161,8 @@ def run_loop(
                 break
             if waiter(float(settings.poll_interval_seconds)):
                 break
+        if received_signals:
+            logger.info("Received signal %d, stopping loop", received_signals[0])
     finally:
         if on_main_thread:
             signal.signal(signal.SIGINT, prev_sigint)
