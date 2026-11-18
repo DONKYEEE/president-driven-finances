@@ -1,4 +1,4 @@
-# Architecture Decision & Technical Design: Repository Skeleton and Data Ingestion (`trump-quant` — Part 1)
+# Architecture Decision & Technical Design: Repository Skeleton and Data Ingestion (`PDF — President Driven Finances`, Part 1)
 
 **Date:** 2026-11-18  
 **Scope:** Flat modular monorepo skeleton + working Part 1 (Truth Social and Binance data ingestion to Bronze Parquet) + scaffolding for future ETL and AI modules.
@@ -63,12 +63,12 @@ At the same time, the project needs to start in a way that:
 
 ---
 
-## 4. Repository Architecture (`Projekty/trump-quant`)
+## 4. Repository Architecture (`PDF`)
 
 We use **one flat, modular repository** managed with **`uv`** (no Git submodules, no Cruft, and no extra `packages/` or `src/` nesting layers):
 
 ```text
-trump-quant/
+PDF/
 ├── pyproject.toml              # Project metadata + dependency extras (ingestion, etl, ai)
 ├── docker-compose.yml          # One-command container execution (starting with ingestion)
 ├── .env.example                # Environment variable template (storage URI, interval, symbols, etc.)

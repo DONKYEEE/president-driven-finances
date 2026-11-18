@@ -1,4 +1,4 @@
-# trump-quant
+# PDF (President Driven Finances)
 
 Event-study BI pipeline analyzing Donald Trump's Truth Social activity and cryptocurrency market reactions.
 

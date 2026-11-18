@@ -1,7 +1,7 @@
 [project]
-name = "trump-quant"
+name = "pdf"
 version = "0.1.0"
-description = "Event study data pipeline analyzing Donald Trump's Truth Social activity and cryptocurrency market reactions."
+description = "PDF (President Driven Finances) — event-study pipeline analyzing Donald Trump's Truth Social activity and cryptocurrency market reactions."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []

@@ -94,7 +94,7 @@ def run_once(
         if client is not None
         else httpx.Client(
             timeout=settings.http_timeout_seconds,
-            headers={"User-Agent": "trump-quant-ingestion/0.1"},
+            headers={"User-Agent": "pdf-ingestion/0.1"},
         )
     )
 
