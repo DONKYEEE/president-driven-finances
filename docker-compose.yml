@@ -1,0 +1,14 @@
+services:
+  ingestion:
+    build:
+      context: .
+      dockerfile: ingestion/Dockerfile
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      STORAGE_URI: ${STORAGE_URI:-/app/data/bronze}
+      LOG_FILE: ${LOG_FILE:-/app/data/logs/ingestion.log}
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

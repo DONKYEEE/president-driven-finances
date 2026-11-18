@@ -70,7 +70,7 @@ class IngestionSettings(BaseSettings):
         elif isinstance(value, list):
             items = [str(item).strip() for item in value if str(item).strip()]
         else:
-            raise ValueError("BINANCE_SYMBOLS must be a comma-separated string or list")
+            raise ValueError("BINANCE_SYMBOLS must be a comma-separated string or list")  # noqa: TRY004 — Pydantic v2 requires ValueError to emit ValidationError
         if not items:
             raise ValueError("BINANCE_SYMBOLS cannot be empty")
         return items

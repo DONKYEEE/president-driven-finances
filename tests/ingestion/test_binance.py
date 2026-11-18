@@ -68,7 +68,7 @@ def test_binance_pagination_midnight_split_excludes_unclosed_and_keeps_zero_volu
     assert any("date=2026-11-17" in f for f in res.files_written)
     assert any("date=2026-11-18" in f for f in res.files_written)
 
-    day2_file = [f for f in res.files_written if "date=2026-11-18" in f][0]
+    day2_file = next(f for f in res.files_written if "date=2026-11-18" in f)
     day2_table = pq.read_table(day2_file)
     assert day2_table.column("open_time_ms").to_pylist() == [t_mid_0, t_mid_1]
     assert day2_table.column("volume").to_pylist() == ["10.50000000", "0.00000000"]
@@ -105,11 +105,13 @@ def test_binance_isolated_symbol_failure_preserves_watermarks_and_retries_429(tm
             return httpx.Response(200, json=[_kline(t1, interval_ms=interval_ms)])
         return httpx.Response(500, json={"msg": "upstream error"})
 
-    with caplog.at_level("WARNING"):
-        with httpx.Client(transport=httpx.MockTransport(handler)) as client:
-            res = BinanceConnector(max_retries=2, backoff_seconds=0.0).run(
-                storage, state, settings, client, now_fn=lambda: now_dt
-            )
+    with (
+        caplog.at_level("WARNING"),
+        httpx.Client(transport=httpx.MockTransport(handler)) as client,
+    ):
+        res = BinanceConnector(max_retries=2, backoff_seconds=0.0).run(
+            storage, state, settings, client, now_fn=lambda: now_dt
+        )
 
     assert btc_attempts == 2
     assert res.status == "partial_failure"

@@ -132,7 +132,7 @@ class TruthSocialConnector:
         try:
             payload = response.json()
             if not isinstance(payload, list):
-                raise ValueError(
+                raise TypeError(
                     f"Expected JSON list from truth_social archive, got {type(payload).__name__}"
                 )
             etag = response.headers.get("ETag")

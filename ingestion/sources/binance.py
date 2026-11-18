@@ -114,7 +114,7 @@ class BinanceConnector:
                 response.raise_for_status()
                 payload = response.json()
                 if not isinstance(payload, list):
-                    raise ValueError(
+                    raise TypeError(
                         f"Expected list payload from Binance for {symbol}, got {type(payload).__name__}"
                     )
                 return payload
@@ -284,6 +284,7 @@ class BinanceConnector:
                 total_records += count
                 files_written.extend(paths)
             except Exception as exc:
+                logger.exception("binance symbol %s failed during ingestion", symbol)
                 errors[symbol] = str(exc)
 
         if errors and ok_count == 0:

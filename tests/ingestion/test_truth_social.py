@@ -91,21 +91,25 @@ def test_truth_social_missing_etag_and_corrupt_response_preserves_state(tmp_path
         return datetime(2026, 11, 18, 8, 0, 0, tzinfo=UTC)
 
     # HTTP 502 must log failure context and preserve saved state
-    with caplog.at_level("ERROR"):
-        with httpx.Client(
+    with (
+        caplog.at_level("ERROR"),
+        httpx.Client(
             transport=httpx.MockTransport(lambda r: httpx.Response(502, text="bad gateway"))
-        ) as client:
-            with pytest.raises(httpx.HTTPStatusError):
-                connector.run(storage, state, settings, client, now_fn=fixed_now)
+        ) as client,
+        pytest.raises(httpx.HTTPStatusError),
+    ):
+        connector.run(storage, state, settings, client, now_fn=fixed_now)
     assert "502" in caplog.text and "truth_social" in caplog.text
     assert state.get_json("truth_social")["etag"] == '"prev"'
 
     # Corrupt non-list JSON must fail without overwriting saved state
-    with httpx.Client(
-        transport=httpx.MockTransport(lambda r: httpx.Response(200, json={"error": "bad"}))
-    ) as client:
-        with pytest.raises(ValueError):
-            connector.run(storage, state, settings, client, now_fn=fixed_now)
+    with (
+        httpx.Client(
+            transport=httpx.MockTransport(lambda r: httpx.Response(200, json={"error": "bad"}))
+        ) as client,
+        pytest.raises(TypeError),
+    ):
+        connector.run(storage, state, settings, client, now_fn=fixed_now)
     assert state.get_json("truth_social")["etag"] == '"prev"'
 
     # Valid 200 without ETag/Last-Modified must still write snapshot cleanly
